@@ -18,4 +18,20 @@ angular.module('ui.bootstrap.demo').controller('DropdownCtrl', function ($scope)
     $event.stopPropagation();
     $scope.status.isopen = !$scope.status.isopen;
   };
+})
+
+.directive('contextMenuToggle', function () {
+  return {
+    require: '^dropdown',
+    link: function (scope, element, attrs, dropdownCtrl) {
+      element.bind('contextmenu', function (evt) {
+        scope.$apply(function () {
+          console.log('context menu right clicked');
+          evt.preventDefault();
+          evt.stopPropagation();
+          dropdownCtrl.toggle(true, evt);
+        });
+      });
+    }
+  };
 });

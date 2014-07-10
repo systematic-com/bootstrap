@@ -53,7 +53,8 @@ angular.module('ui.bootstrap.dropdown', [])
       openClass = dropdownConfig.openClass,
       getIsOpen,
       setIsOpen = angular.noop,
-      toggleInvoker = $attrs.onToggle ? $parse($attrs.onToggle) : angular.noop;
+      toggleInvoker = $attrs.onToggle ? $parse($attrs.onToggle) : angular.noop,
+      callbacks = [];
 
   this.init = function( element ) {
     self.$element = element;
@@ -68,9 +69,28 @@ angular.module('ui.bootstrap.dropdown', [])
     }
   };
 
-  this.toggle = function( open ) {
-    return scope.isOpen = arguments.length ? !!open : !scope.isOpen;
+  this.register = function ( callback ) {
+    if (callback) {
+      callbacks.push(callback);
+    }
   };
+
+  this.unregister = function ( callback ) {
+    if (callback && callbacks.indexOf(callback) > -1) {
+      callbacks.splice(callbacks.indexOf(callback), 1);
+    }
+  };
+
+  this.toggle = function( open, event ) {
+    var isOpen = arguments.length ? !!open : !scope.isOpen;
+    if (isOpen) {
+      callbacks.forEach(function (cb) {
+        cb(event ? {x: event.pageX, y: event.pageY } : undefined);
+      });
+    }
+    return scope.isOpen = isOpen;
+  };
+
 
   // Allow other directives to watch status
   this.isOpen = function() {
@@ -135,6 +155,7 @@ angular.module('ui.bootstrap.dropdown', [])
 
       var toggleDropdown = function(event) {
         event.preventDefault();
+        event.stopPropagation();
 
         if ( !element.hasClass('disabled') && !attrs.disabled ) {
           scope.$apply(function() {
@@ -156,4 +177,41 @@ angular.module('ui.bootstrap.dropdown', [])
       });
     }
   };
-});
+})
+
+.directive('dropdownMenu', ['$document', function ($document) {
+  return {
+    restrict: 'AC',
+    require: '?^dropdown',
+    link: function (scope, element, attrs, dropdownCtrl) {
+      if (!dropdownCtrl) {
+        return;
+      }
+      dropdownCtrl.register(onOpen);
+      function onOpen(coords) {
+        if (!coords) {
+          return;
+        }
+        var doc = $document[0].documentElement,
+          docLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0),
+          docTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0),
+          elementHeight = element[0].scrollHeight,
+          docHeight = doc.clientHeight + docTop,
+          totalHeight = elementHeight + coords.y,
+          top = Math.max(coords.y - docTop, 0);
+
+        if (totalHeight > docHeight) {
+          top = top - (totalHeight - docHeight);
+        }
+
+        element.css('position', 'fixed');
+        element.css('top', top + 'px');
+        element.css('left', Math.max(coords.x - docLeft, 0) + 'px');
+      }
+
+      scope.$on('$destroy', function () {
+        dropdownCtrl.unregister(onOpen);
+      });
+    }
+  };
+}]);

@@ -285,4 +285,52 @@ describe('dropdownToggle', function() {
       expect($rootScope.toggleHandler).toHaveBeenCalledWith(false);
     });
   });
+
+  describe('toggle should use coordinates to position menu if available', function() {
+    var ctrl,
+      menuElement;
+    beforeEach(function() {
+      $rootScope.toggleHandler = jasmine.createSpy('toggleHandler');
+      element = $compile('' +
+        '<li class="dropdown">' +
+          '<a dropdown-toggle></a>' +
+          '<ul class="dropdown-menu" style="position: absolute">' +
+            '<li>Hello</li>' +
+          '</ul>' +
+        '</li>')($rootScope);
+      menuElement = element.find('ul');
+      ctrl = element.controller('dropdown');
+      expect(ctrl).toBeDefined();
+      $rootScope.$digest();
+      $document.find('body').append(element);
+    });
+
+    it('should not have been toggled initially', function() {
+      expect(menuElement.css('position')).toBe('absolute');
+    });
+
+    it('should set position to fixed if event is passed to toggle', function() {
+      ctrl.toggle(true, {pageX: 5, pageY: 5});
+      $rootScope.$digest();
+
+      expect(menuElement.css('position')).toBe('fixed');
+      expect(menuElement.css('top')).toBe('5px');
+      expect(menuElement.css('left')).toBe('5px');
+    });
+
+    it('should not alter position if no event is passed to toggle', function() {
+      ctrl.toggle(true);
+      $rootScope.$digest();
+
+      expect(menuElement.css('position')).toBe('absolute');
+    });
+
+    it('should unregister handler on $destroy', function() {
+      spyOn(ctrl, 'unregister').andCallThrough();
+      expect(ctrl.unregister).not.toHaveBeenCalled();
+
+      $rootScope.$destroy();
+      expect(ctrl.unregister).toHaveBeenCalled();
+    });
+  });
 });
