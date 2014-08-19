@@ -309,14 +309,15 @@ describe('dropdownToggle', function() {
       expect(menuElement.css('position')).toBe('absolute');
     });
 
-    it('should set position to fixed if event is passed to toggle', function() {
+    it('should set position to fixed if event is passed to toggle', inject(function ($timeout) {
       ctrl.toggle(true, {pageX: 5, pageY: 5});
+      $timeout.flush();
       $rootScope.$digest();
 
       expect(menuElement.css('position')).toBe('fixed');
       expect(menuElement.css('top')).toBe('5px');
       expect(menuElement.css('left')).toBe('5px');
-    });
+    }));
 
     it('should not alter position if no event is passed to toggle', function() {
       ctrl.toggle(true);

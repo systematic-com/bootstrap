@@ -179,7 +179,7 @@ angular.module('ui.bootstrap.dropdown', [])
   };
 })
 
-.directive('dropdownMenu', ['$document', function ($document) {
+.directive('dropdownMenu', ['$document', '$timeout', function ($document, $timeout) {
   return {
     restrict: 'AC',
     require: '?^dropdown',
@@ -192,21 +192,34 @@ angular.module('ui.bootstrap.dropdown', [])
         if (!coords) {
           return;
         }
-        var doc = $document[0].documentElement,
-          docLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0),
-          docTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0),
-          elementHeight = element[0].scrollHeight,
-          docHeight = doc.clientHeight + docTop,
-          totalHeight = elementHeight + coords.y,
-          top = Math.max(coords.y - docTop, 0);
+        // Hide it before moving it in to the right place
+        element.css('display', 'none');
+        // Needs to be done in a timeout, otherwise it is not visible and thus has no width/height
+        $timeout(function () {
+          element.css('display', 'block');
+          element.css('right', 'initial'); // for rtl support
+          var doc = $document[0].documentElement,
+            docLeft = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0),
+            docTop = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0),
+            elementHeight = element[0].scrollHeight,
+            elementWidth = element[0].scrollWidth,
+            docHeight = doc.clientHeight + docTop,
+            docWidth = doc.clientWidth + docLeft,
+            totalHeight = elementHeight + coords.y,
+            totalWidth = elementWidth + coords.x,
+            top = Math.max(coords.y - docTop, 0),
+            left = Math.max(coords.x - docLeft, 0);
 
-        if (totalHeight > docHeight) {
-          top = top - (totalHeight - docHeight);
-        }
-
-        element.css('position', 'fixed');
-        element.css('top', top + 'px');
-        element.css('left', Math.max(coords.x - docLeft, 0) + 'px');
+          if (totalHeight > docHeight) {
+            top = top - (totalHeight - docHeight);
+          }
+          if (totalWidth > docWidth) {
+            left = left - (totalWidth - docWidth);
+          }
+          element.css('position', 'fixed');
+          element.css('top', top + 'px');
+          element.css('left', left + 'px');
+        });
       }
 
       scope.$on('$destroy', function () {
